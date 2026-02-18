@@ -98,8 +98,14 @@ class Item(Base):
     hsn_code = Column(String(20))
 
     cost_price = Column(Numeric)
+    purchase_price = Column(Numeric)
     selling_price = Column(Numeric)
     gst_percent = Column(Numeric)
+
+    supplier_name = Column(String(200), nullable=False, server_default="")
+    supplier_gst = Column(String(50))
+    supplier_contact = Column(String(50))
+    supplier_address = Column(Text)
 
     stock_qty = Column(Integer)
     reorder_level = Column(Integer)

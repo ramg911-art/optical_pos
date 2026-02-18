@@ -13,8 +13,14 @@ export default function Items(){
 
   const [name,setName]=useState("")
   const [price,setPrice]=useState("")
+  const [purchasePrice,setPurchasePrice]=useState("")
+  const [gstPercent,setGstPercent]=useState("")
   const [stock,setStock]=useState("")
   const [category,setCategory]=useState("")
+  const [supplierName,setSupplierName]=useState("")
+  const [supplierGst,setSupplierGst]=useState("")
+  const [supplierContact,setSupplierContact]=useState("")
+  const [supplierAddress,setSupplierAddress]=useState("")
   const [categories,setCategories]=useState<any[]>([])
 
 
@@ -49,14 +55,26 @@ useEffect(()=>{
     name: name,
     category_id: parseInt(category),
     selling_price: parseFloat(price || "0"),
-    stock_qty: parseInt(stock || "0")
+    purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
+    gst_percent: gstPercent ? parseFloat(gstPercent) : null,
+    stock_qty: parseInt(stock || "0"),
+    supplier_name: supplierName || null,
+    supplier_gst: supplierGst || null,
+    supplier_contact: supplierContact || null,
+    supplier_address: supplierAddress || null,
   },
   { headers })
 
   setName("")
   setPrice("")
+  setPurchasePrice("")
+  setGstPercent("")
   setStock("")
   setCategory("")
+  setSupplierName("")
+  setSupplierGst("")
+  setSupplierContact("")
+  setSupplierAddress("")
 
   loadItems()
 }
@@ -92,54 +110,103 @@ useEffect(()=>{
       />
 
       {/* ADD FORM */}
-      <div style={{marginTop:20}}>
+      <div style={{marginTop:20, display:"grid", gridTemplateColumns:"repeat(2, minmax(0, 1fr))", gap:12}}>
 
-        <input
-          placeholder="Name"
-          value={name}
-          onChange={e=>setName(e.target.value)}
-        />
+        <div>
+          <h3>Item Details</h3>
+          <div style={{display:"flex", flexDirection:"column", gap:8}}>
+            <input
+              placeholder="Name"
+              value={name}
+              onChange={e=>setName(e.target.value)}
+            />
 
-        <select
-          value={category}
-          onChange={e=>setCategory(e.target.value)}
-        >
+            <select
+              value={category}
+              onChange={e=>setCategory(e.target.value)}
+            >
+              <option value="">Select Category</option>
+              {categories.map(c=>(
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
 
-          <option value="">Select Category</option>
+            <input
+              placeholder="Selling Price"
+              value={price}
+              onChange={e=>setPrice(e.target.value)}
+            />
 
-          {categories.map(c=>(
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
+            <input
+              placeholder="Purchase Price"
+              value={purchasePrice}
+              onChange={e=>setPurchasePrice(e.target.value)}
+            />
 
-        </select>
+            <input
+              placeholder="GST %"
+              value={gstPercent}
+              onChange={e=>setGstPercent(e.target.value)}
+            />
 
+            <input
+              placeholder="HSN Code"
+              // we don't store this in local state for add form separately;
+              // can be extended later if needed
+              onChange={()=>{}}
+            />
 
+            <input
+              placeholder="Stock"
+              value={stock}
+              onChange={e=>setStock(e.target.value)}
+            />
+          </div>
+        </div>
 
-        <input
-          placeholder="Price"
-          value={price}
-          onChange={e=>setPrice(e.target.value)}
-        />
-
-        <input
-          placeholder="Stock"
-          value={stock}
-          onChange={e=>setStock(e.target.value)}
-        />
-
-        <button onClick={addItem}>
-          Add Item
-        </button>
+        <div>
+          <h3>Supplier Details</h3>
+          <div style={{display:"flex", flexDirection:"column", gap:8}}>
+            <input
+              placeholder="Supplier Name"
+              value={supplierName}
+              onChange={e=>setSupplierName(e.target.value)}
+            />
+            <input
+              placeholder="Supplier GST"
+              value={supplierGst}
+              onChange={e=>setSupplierGst(e.target.value)}
+            />
+            <input
+              placeholder="Supplier Contact"
+              value={supplierContact}
+              onChange={e=>setSupplierContact(e.target.value)}
+            />
+            <textarea
+              placeholder="Supplier Address"
+              value={supplierAddress}
+              onChange={e=>setSupplierAddress(e.target.value)}
+              rows={3}
+            />
+            <button onClick={addItem}>
+              Add Item
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* TABLE */}
-      <table border={1} cellPadding={8} style={{marginTop:20}}>
+      <table border={1} cellPadding={8} style={{marginTop:20, width:"100%", borderCollapse:"collapse"}}>
         <thead>
           <tr>
             <th>Name</th>
-            <th>Price</th>
+            <th>Selling Price</th>
+            <th>Purchase Price</th>
+            <th>GST %</th>
+            <th>HSN</th>
+            <th>Supplier</th>
             <th>Stock</th>
             <th></th>
           </tr>
@@ -150,6 +217,10 @@ useEffect(()=>{
             <tr key={i.id}>
               <td>{i.name}</td>
               <td>{i.selling_price}</td>
+              <td>{i.purchase_price}</td>
+              <td>{i.gst_percent}</td>
+              <td>{i.hsn_code}</td>
+              <td>{i.supplier_name}</td>
               <td>{i.stock_qty}</td>
 
               <td>
@@ -177,6 +248,70 @@ useEffect(()=>{
             onChange={e=>setEdit({...edit,
               selling_price:Number(e.target.value)})
             }
+          />
+
+          <input
+            placeholder="Purchase Price"
+            value={edit.purchase_price ?? ""}
+            onChange={e=>setEdit({
+              ...edit,
+              purchase_price: e.target.value ? Number(e.target.value) : null
+            })}
+          />
+
+          <input
+            placeholder="GST %"
+            value={edit.gst_percent ?? ""}
+            onChange={e=>setEdit({
+              ...edit,
+              gst_percent: e.target.value ? Number(e.target.value) : null
+            })}
+          />
+
+          <input
+            placeholder="HSN Code"
+            value={edit.hsn_code ?? ""}
+            onChange={e=>setEdit({
+              ...edit,
+              hsn_code: e.target.value || null
+            })}
+          />
+
+          <input
+            placeholder="Supplier Name"
+            value={edit.supplier_name ?? ""}
+            onChange={e=>setEdit({
+              ...edit,
+              supplier_name: e.target.value || null
+            })}
+          />
+
+          <input
+            placeholder="Supplier GST"
+            value={edit.supplier_gst ?? ""}
+            onChange={e=>setEdit({
+              ...edit,
+              supplier_gst: e.target.value || null
+            })}
+          />
+
+          <input
+            placeholder="Supplier Contact"
+            value={edit.supplier_contact ?? ""}
+            onChange={e=>setEdit({
+              ...edit,
+              supplier_contact: e.target.value || null
+            })}
+          />
+
+          <textarea
+            placeholder="Supplier Address"
+            value={edit.supplier_address ?? ""}
+            onChange={e=>setEdit({
+              ...edit,
+              supplier_address: e.target.value || null
+            })}
+            rows={3}
           />
 
           <input

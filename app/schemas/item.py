@@ -26,10 +26,15 @@ class ItemCreate(BaseModel):
     size: Optional[str] = None
     barcode: Optional[str] = None
     hsn_code: Optional[str] = None
+    purchase_price: Optional[Decimal] = None
     cost_price: Optional[Decimal] = None
     selling_price: Optional[Decimal] = None
     gst_percent: Optional[Decimal] = None
     stock_qty: Optional[int] = 0
+    supplier_name: Optional[str] = None
+    supplier_gst: Optional[str] = None
+    supplier_contact: Optional[str] = None
+    supplier_address: Optional[str] = None
 
 
 class ItemOut(BaseModel):
@@ -37,6 +42,13 @@ class ItemOut(BaseModel):
     name: str
     stock_qty: int
     selling_price: Optional[Decimal]
+    purchase_price: Optional[Decimal] = None
+    gst_percent: Optional[Decimal] = None
+    hsn_code: Optional[str] = None
+    supplier_name: Optional[str] = None
+    supplier_gst: Optional[str] = None
+    supplier_contact: Optional[str] = None
+    supplier_address: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -51,10 +63,15 @@ class ItemUpdate(BaseModel):
     size: Optional[str] = None
     barcode: Optional[str] = None
     hsn_code: Optional[str] = None
+    purchase_price: Optional[Decimal] = None
     cost_price: Optional[Decimal] = None
     selling_price: Optional[Decimal] = None
     gst_percent: Optional[Decimal] = None
     stock_qty: Optional[int] = None
+    supplier_name: Optional[str] = None
+    supplier_gst: Optional[str] = None
+    supplier_contact: Optional[str] = None
+    supplier_address: Optional[str] = None
 
 
 class CategoryUpdate(BaseModel):
