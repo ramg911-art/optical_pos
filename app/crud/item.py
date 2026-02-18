@@ -13,8 +13,8 @@ def _safe_commit(db: Session) -> None:
 
 
 # ---------- CATEGORY ----------
-def create_category(db: Session, name: str):
-    cat = Category(name=name)
+def create_category(db: Session, name: str, description: str | None = None):
+    cat = Category(name=name, description=description)
     db.add(cat)
     _safe_commit(db)
     db.refresh(cat)
@@ -63,12 +63,13 @@ def delete_item(db: Session, item_id: int):
 
 
 # ---------- CATEGORY UPDATE ----------
-def update_category(db: Session, cid: int, name: str):
+def update_category(db: Session, cid: int, name: str, description: str | None = None):
     cat = db.query(Category).get(cid)
     if not cat:
         return None
 
     cat.name = name
+    cat.description = description
     _safe_commit(db)
     db.refresh(cat)
     return cat

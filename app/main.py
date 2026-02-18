@@ -10,6 +10,7 @@ from app.api.purchase import router as purchase_router
 from app.api.supplier import router as supplier_router
 from app.api.dashboard import router as dashboard_router
 from app.api.prescriptions import router as rx_router
+from app.api.categories import router as categories_router
 from app.core.database import engine
 
 
@@ -32,6 +33,7 @@ def root():
 # ---------- Routers ----------
 app.include_router(auth_router)
 app.include_router(items_router)
+app.include_router(categories_router)
 app.include_router(sales_router)
 app.include_router(lens_router)
 app.include_router(purchase_router)

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -15,7 +15,7 @@ def add_category(
         data: CategoryCreate,
         db: Session = Depends(get_db),
         user=Depends(get_current_user)):
-    return crud_item.create_category(db, data.name)
+    return crud_item.create_category(db, data.name, data.description)
 
 
 @router.get("/categories", response_model=list[CategoryOut])
@@ -71,7 +71,7 @@ def edit_category(
         data: CategoryUpdate,
         db: Session = Depends(get_db),
         user=Depends(get_current_user)):
-    cat = crud_item.update_category(db, cid, data.name)
+    cat = crud_item.update_category(db, cid, data.name, data.description)
     if not cat:
         raise HTTPException(404, "Category not found")
     return cat
@@ -87,8 +87,6 @@ def remove_category(
     if not ok:
         raise HTTPException(404, "Category not found")
     return {"status": "deleted"}
-
-from fastapi import Query
 
 @router.get("/search", response_model=list[ItemOut])
 def search_items_endpoint(

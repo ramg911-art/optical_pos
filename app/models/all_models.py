@@ -78,6 +78,8 @@ class Category(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(100), unique=True)
+    description = Column(Text, nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
 
     items = relationship("Item", back_populates="category")
 
@@ -94,6 +96,13 @@ class Item(Base):
     color = Column(String(50))
     size = Column(String(50))
 
+    # Supplier information
+    supplier_name = Column(String(200), nullable=True)
+    supplier_gst = Column(String(50), nullable=True)
+    supplier_contact = Column(String(50), nullable=True)
+    supplier_address = Column(Text, nullable=True)
+
+    # Tax and pricing information
     barcode = Column(String(100))
     hsn_code = Column(String(20))
 
@@ -101,11 +110,6 @@ class Item(Base):
     purchase_price = Column(Numeric)
     selling_price = Column(Numeric)
     gst_percent = Column(Numeric)
-
-    supplier_name = Column(String(200), nullable=False, server_default="")
-    supplier_gst = Column(String(50))
-    supplier_contact = Column(String(50))
-    supplier_address = Column(Text)
 
     stock_qty = Column(Integer)
     reorder_level = Column(Integer)

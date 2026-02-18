@@ -24,6 +24,10 @@ export default function Navbar() {
           Items
         </button>
 
+        <button onClick={()=>nav("/categories")} className="navbtn">
+          Categories
+        </button>
+
         <button onClick={()=>nav("/suppliers")} className="navbtn">
           Suppliers
         </button>
