@@ -1,10 +1,20 @@
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.models.all_models import Supplier
+
+
+def _safe_commit(db) -> None:
+    try:
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise
 
 
 def create_supplier(db, data):
     s = Supplier(**data.dict())
     db.add(s)
-    db.commit()
+    _safe_commit(db)
     db.refresh(s)
     return s
 
@@ -16,4 +26,4 @@ def list_suppliers(db):
 def delete_supplier(db, sid):
     s = db.query(Supplier).get(sid)
     db.delete(s)
-    db.commit()
+    _safe_commit(db)

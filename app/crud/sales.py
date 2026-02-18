@@ -1,12 +1,22 @@
 from decimal import Decimal
+
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models.all_models import (
     Sale,
     SaleItem,
     Payment,
-    Item
+    Item,
 )
+
+
+def _safe_commit(db: Session) -> None:
+    try:
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise
 
 
 # =========================================================
@@ -120,7 +130,7 @@ def create_sale(db: Session, data, user_id: int):
     # =====================================================
     # STEP 5: COMMIT
     # =====================================================
-    db.commit()
+    _safe_commit(db)
 
     db.refresh(sale)
 

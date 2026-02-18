@@ -1,12 +1,22 @@
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+
 from app.models.all_models import Category, Item
+
+
+def _safe_commit(db: Session) -> None:
+    try:
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise
 
 
 # ---------- CATEGORY ----------
 def create_category(db: Session, name: str):
     cat = Category(name=name)
     db.add(cat)
-    db.commit()
+    _safe_commit(db)
     db.refresh(cat)
     return cat
 
@@ -19,7 +29,7 @@ def get_categories(db: Session):
 def create_item(db: Session, data):
     item = Item(**data.dict())
     db.add(item)
-    db.commit()
+    _safe_commit(db)
     db.refresh(item)
     return item
 
@@ -36,7 +46,7 @@ def update_item(db: Session, item_id: int, data):
     for key, value in data.dict(exclude_unset=True).items():
         setattr(item, key, value)
 
-    db.commit()
+    _safe_commit(db)
     db.refresh(item)
     return item
 
@@ -48,7 +58,7 @@ def delete_item(db: Session, item_id: int):
         return False
 
     db.delete(item)
-    db.commit()
+    _safe_commit(db)
     return True
 
 
@@ -59,7 +69,7 @@ def update_category(db: Session, cid: int, name: str):
         return None
 
     cat.name = name
-    db.commit()
+    _safe_commit(db)
     db.refresh(cat)
     return cat
 
@@ -71,7 +81,7 @@ def delete_category(db: Session, cid: int):
         return False
 
     db.delete(cat)
-    db.commit()
+    _safe_commit(db)
     return True
 
 from sqlalchemy import or_

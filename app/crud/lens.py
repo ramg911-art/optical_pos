@@ -1,11 +1,23 @@
-from sqlalchemy.orm import Session
 from datetime import date
+
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.all_models import (
     LensOrder,
     Prescription,
-    LensOrderStatusLog
+    LensOrderStatusLog,
+    Sale,
+    Supplier,
 )
+
+
+def _safe_commit(db: Session) -> None:
+    try:
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise
 
 
 # =====================================================
@@ -15,25 +27,21 @@ from app.models.all_models import (
 def create_prescription(db: Session, data):
 
     rx = Prescription(
-
         sale_id=data.sale_id,
-
         sphere_r=data.sphere_r,
         cyl_r=data.cyl_r,
         axis_r=data.axis_r,
         add_r=data.add_r,
-
         sphere_l=data.sphere_l,
         cyl_l=data.cyl_l,
         axis_l=data.axis_l,
         add_l=data.add_l,
-
         pd=data.pd,
-        notes=data.notes
+        notes=data.notes,
     )
 
     db.add(rx)
-    db.commit()
+    _safe_commit(db)
     db.refresh(rx)
 
     return rx
@@ -46,41 +54,35 @@ def create_prescription(db: Session, data):
 def create_lens_order(db: Session, data):
 
     order = LensOrder(
-
         sale_id=data.sale_id,
         prescription_id=data.prescription_id,
         supplier_id=data.supplier_id,
-
         lens_type=data.lens_type,
         index_value=data.index_value,
         coating=data.coating,
         tint=data.tint,
-
         order_date=date.today(),
-
-        expected_date=data.expected_date
-        if hasattr(data, "expected_date") and data.expected_date
-        else None,
-
-        status="ORDERED"
+        expected_date=(
+            data.expected_date
+            if hasattr(data, "expected_date") and data.expected_date
+            else None
+        ),
+        status="ORDERED",
     )
 
     db.add(order)
-    db.commit()
+    _safe_commit(db)
     db.refresh(order)
-
 
     # CREATE STATUS LOG
     log = LensOrderStatusLog(
-
         lens_order_id=order.id,
         status="ORDERED",
-        changed_by=None
-
+        changed_by=None,
     )
 
     db.add(log)
-    db.commit()
+    _safe_commit(db)
 
     return order
 
@@ -101,33 +103,26 @@ def update_status(db: Session, order_id: int, status: str, user_id: int):
             "error": "Order not found"
         }
 
-
     # update order
     order.status = status
 
-
     # create log
     log = LensOrderStatusLog(
-
         lens_order_id=order_id,
         status=status,
-        changed_by=user_id
-
+        changed_by=user_id,
     )
 
     db.add(log)
 
-    db.commit()
+    _safe_commit(db)
 
     db.refresh(order)
 
-
     return {
-
         "success": True,
         "order_id": order.id,
-        "new_status": order.status
-
+        "new_status": order.status,
     }
 
 
@@ -135,12 +130,14 @@ def update_status(db: Session, order_id: int, status: str, user_id: int):
 # LIST ORDERS (your existing correct version)
 # =====================================================
 
-def list_orders(db):
-
-    from app.models.all_models import LensOrder
+def list_orders(db: Session):
 
     orders = (
         db.query(LensOrder)
+        .options(
+            selectinload(LensOrder.sale).selectinload(Sale.customer),
+            selectinload(LensOrder.supplier),
+        )
         .order_by(LensOrder.id.desc())
         .all()
     )
@@ -155,13 +152,13 @@ def list_orders(db):
 
             "patient_name": (
                 o.sale.customer_name
-                or (o.sale.customer.name if o.sale.customer else "")
+                or (o.sale.customer.name if o.sale and o.sale.customer else "")
                 if o.sale else ""
             ),
 
             "patient_phone": (
                 o.sale.customer_phone
-                or (o.sale.customer.phone if o.sale.customer else "")
+                or (o.sale.customer.phone if o.sale and o.sale.customer else "")
                 if o.sale else ""
             ),
 
@@ -186,7 +183,7 @@ def list_orders(db):
 
             "sale_id": o.sale_id,
             "supplier_id": o.supplier_id,
-            "prescription_id": o.prescription_id
+            "prescription_id": o.prescription_id,
 
         })
 

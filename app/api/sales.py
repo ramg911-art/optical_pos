@@ -1,16 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
+from reportlab.pdfgen import canvas
+from datetime import datetime
+from decimal import Decimal
+from io import BytesIO
 
 from app.api.deps import get_db
 from app.api.security import get_current_user
 from app.schemas.sales import *
-from app.crud.sales import create_sale
 from app.crud.sales import create_sale, get_sale
-from fastapi.responses import FileResponse
 from app.services.invoice_pdf import generate_invoice_pdf
-from app.api.deps import get_current_user
-
-
+from app.services.sales_service import (
+    build_sale_detail_response,
+    build_sales_list_response,
+)
 
 
 router = APIRouter(prefix="/sales", tags=["Sales"])
@@ -37,33 +41,12 @@ def get_sale_endpoint(
         sale_id: int,
         db: Session = Depends(get_db),
         user=Depends(get_current_user)):
-
     sale = get_sale(db, sale_id)
 
     if not sale:
         raise HTTPException(404, "Sale not found")
 
-    # ----- GST Summary -----
-    total_cgst = sum([i.cgst or 0 for i in sale.items])
-    total_sgst = sum([i.sgst or 0 for i in sale.items])
-    total_gst = sum([i.gst_amount or 0 for i in sale.items])
-
-    return {
-        "id": sale.id,
-        "total": sale.total,
-        "paid": sale.paid,
-        "balance": sale.balance,
-        "status": sale.status,
-
-        "gst_summary": {
-            "cgst": total_cgst,
-            "sgst": total_sgst,
-            "total_gst": total_gst
-        },
-
-        "items": sale.items,
-        "payments": sale.payments
-    }
+    return build_sale_detail_response(sale)
 
 
 @router.get("/{sale_id}/pdf")
@@ -84,12 +67,8 @@ def invoice_pdf(
     return FileResponse(
         pdf_path,
         media_type="application/pdf",
-        filename=f"invoice_{sale_id}.pdf"
+        filename=f"invoice_{sale_id}.pdf",
     )
-
-from datetime import datetime
-from decimal import Decimal
-from fastapi import APIRouter, Depends, HTTPException, Body
 
 
 @router.post("/{sale_id}/return")
@@ -143,10 +122,6 @@ def return_items(
         "time": datetime.now()
     }
 
-from fastapi.responses import StreamingResponse
-from reportlab.pdfgen import canvas
-from io import BytesIO
-
 
 @router.get("/{sale_id}/return-pdf")
 def return_pdf(
@@ -192,12 +167,5 @@ def list_sales(
 
     sales = db.query(Sale).order_by(Sale.id.desc()).all()
 
-    return [
-        {
-            "id": s.id,
-            "total": float(s.total),
-            "status": s.status
-        }
-        for s in sales
-    ]
+    return build_sales_list_response(sales)
 
