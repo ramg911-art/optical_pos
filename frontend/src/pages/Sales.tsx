@@ -25,8 +25,8 @@ export default function Sales(){
 
   const [custName,setCustName]=useState("")
   const [custPhone,setCustPhone]=useState("")
-  const [payment,setPayment]=useState("CASH")
-  const [paid,setPaid]=useState("")
+  const [advanceAmount, setAdvanceAmount] = useState("")
+  const [advancePaymentMode, setAdvancePaymentMode] = useState("CASH")
 
   // ================= LOAD ITEMS (for barcode scan fallback) =================
   useEffect(()=>{
@@ -151,7 +151,8 @@ export default function Sales(){
   const taxable = cart.reduce((s,c)=>s+c.price*c.qty,0)
   const gst = cart.reduce((s,c)=>s+(c.price*c.qty*c.gst/100),0)
   const grand = taxable + gst
-  const balance = grand - Number(paid || 0)
+  const advance = Number(advanceAmount || 0)
+  const balance = Math.max(0, grand - advance)
 
   // ================= PDF PRINT =================
   const printInvoice = async (saleId:number)=>{
@@ -178,19 +179,20 @@ export default function Sales(){
 
   try{
 
-    const payload = {
+    const adv = Number(advanceAmount || 0)
 
+    const payload = {
       customer_name: custName || null,
       customer_phone: custPhone || null,
-
       items: cart.map(c=>({
         item_id: Number(c.id),
         qty: Number(c.qty),
         price: Number(c.price)
       })),
-
-      payment_amount: Number(paid || grand),
-      payment_mode: payment
+      advance_amount: adv,
+      advance_payment_mode: advancePaymentMode,
+      payment_amount: adv,
+      payment_method: advancePaymentMode,
     }
 
     console.log("SALE PAYLOAD:", payload)
@@ -352,25 +354,37 @@ export default function Sales(){
 
       <h3>Taxable ₹ {taxable.toFixed(2)}</h3>
       <h3>GST ₹ {gst.toFixed(2)}</h3>
-      <h2>Grand ₹ {grand.toFixed(2)}</h2>
+      <h2>Total: ₹ {grand.toFixed(2)}</h2>
 
-      <div>
-        <select value={payment}
-          onChange={e=>setPayment(e.target.value)}
-        >
-          <option>CASH</option>
-          <option>UPI</option>
-          <option>CARD</option>
-        </select>
-
-        <input
-          placeholder="Paid"
-          value={paid}
-          onChange={e=>setPaid(e.target.value)}
-        />
+      <div style={{ marginTop: 16, padding: 12, background: "#f8f9fa", borderRadius: 6 }}>
+        <strong>Advance</strong>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+          <input
+            type="number"
+            placeholder="Advance Amount"
+            value={advanceAmount}
+            onChange={e=>setAdvanceAmount(e.target.value)}
+            min={0}
+            step={0.01}
+            style={{ width: 140, padding: 8 }}
+          />
+          <select
+            value={advancePaymentMode}
+            onChange={e=>setAdvancePaymentMode(e.target.value)}
+            style={{ padding: 8 }}
+          >
+            <option>CASH</option>
+            <option>UPI</option>
+            <option>CARD</option>
+            <option>BANK TRANSFER</option>
+          </select>
+        </div>
+        <div style={{ marginTop: 12, fontSize: 15 }}>
+          <span>Total: ₹ {grand.toFixed(2)}</span>
+          <span style={{ marginLeft: 16 }}>Advance: ₹ {advance.toFixed(2)}</span>
+          <span style={{ marginLeft: 16 }}>Balance: ₹ {balance.toFixed(2)}</span>
+        </div>
       </div>
-
-      <h3>Balance ₹ {balance.toFixed(2)}</h3>
 
       <button onClick={submit}>
         Complete Sale (F2)

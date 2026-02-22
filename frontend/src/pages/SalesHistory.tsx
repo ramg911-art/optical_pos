@@ -13,6 +13,8 @@ export default function SalesHistory(){
   const [returnQty,setReturnQty]=useState<any>({})
   const [method,setMethod]=useState("CASH")
   const [refund,setRefund]=useState<any>(null)
+  const [showDeliver,setShowDeliver]=useState(false)
+  const [deliverMode,setDeliverMode]=useState("CASH")
 
   // LOAD SALES
   useEffect(()=>{
@@ -27,6 +29,23 @@ export default function SalesHistory(){
     setReturnQty({})
     setRefund(null)
   }
+
+  // DELIVER
+  const processDeliver=async()=>{
+    try {
+      await axios.post(
+        `${API}/sales/${selected.id}/deliver`,
+        { balance_payment_mode: deliverMode },
+        { headers }
+      )
+      setShowDeliver(false)
+      openSale(selected.id)
+    } catch(err:any){
+      alert(err.response?.data?.detail || "Delivery failed")
+    }
+  }
+
+  const balanceDue = selected ? (selected.balance_amount ?? selected.balance ?? 0) : 0
 
   // PRINT
   const printInvoice=async(id:number)=>{
@@ -155,9 +174,59 @@ export default function SalesHistory(){
             Process Return
           </button>
 
-          <button onClick={()=>setSelected(null)}>
+          {Number(balanceDue) > 0 && selected?.delivery_status !== "delivered" && (
+            <button onClick={()=>setShowDeliver(true)} style={{ marginLeft: 8 }}>
+              Deliver
+            </button>
+          )}
+
+          <button onClick={()=>setSelected(null)} style={{ marginLeft: 8 }}>
             Back
           </button>
+
+          {showDeliver && (
+            <div style={{
+              position: "fixed",
+              top: 0, left: 0, right: 0, bottom: 0,
+              background: "rgba(0,0,0,0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+            }}>
+              <div style={{
+                background: "white",
+                padding: 24,
+                borderRadius: 8,
+                minWidth: 320,
+                boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+              }}>
+                <h3>Confirm Delivery</h3>
+                <p><strong>Balance Amount: ₹ {Number(balanceDue).toFixed(2)}</strong></p>
+                <div style={{ marginTop: 12 }}>
+                  <label>Payment Mode</label>
+                  <select
+                    value={deliverMode}
+                    onChange={e=>setDeliverMode(e.target.value)}
+                    style={{ display: "block", marginTop: 4, padding: 8, width: "100%" }}
+                  >
+                    <option>CASH</option>
+                    <option>UPI</option>
+                    <option>CARD</option>
+                    <option>BANK TRANSFER</option>
+                  </select>
+                </div>
+                <div style={{ marginTop: 20, display: "flex", gap: 8 }}>
+                  <button onClick={processDeliver}>
+                    Confirm Delivery
+                  </button>
+                  <button onClick={()=>setShowDeliver(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {refund && (
             <div style={{marginTop:20}}>

@@ -14,6 +14,8 @@ class SaleCreate(BaseModel):
     items: List[SaleItemIn]
     payment_amount: Decimal = 0
     payment_method: str = "cash"
+    advance_amount: Decimal | None = None
+    advance_payment_mode: str | None = None
 
 
 class SaleOut(BaseModel):
@@ -45,12 +47,24 @@ class PaymentOut(BaseModel):
         from_attributes = True
 
 
+class DeliverIn(BaseModel):
+    balance_payment_mode: str
+
+
 class SaleDetailOut(BaseModel):
     id: int
     total: Decimal
     paid: Decimal
     balance: Decimal
     status: str
+    advance_amount: Decimal | None = None
+    advance_payment_mode: str | None = None
+    advance_payment_date: str | None = None
+    balance_amount: Decimal | None = None
+    balance_payment_mode: str | None = None
+    balance_payment_date: str | None = None
+    payment_status: str | None = None
+    delivery_status: str | None = None
 
     items: list[SaleItemOut]
     payments: list[PaymentOut]

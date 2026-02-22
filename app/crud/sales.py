@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -73,18 +74,35 @@ def create_sale(db: Session, data, user_id: int):
             )
         )
 
-    balance = total - Decimal(data.payment_amount or 0)
+    advance = Decimal(data.advance_amount or data.payment_amount or 0)
+    balance_amt = total - advance
+    if advance >= total:
+        payment_status = "paid"
+        balance_amt = Decimal("0")
+    elif advance > 0:
+        payment_status = "partial"
+    else:
+        payment_status = "pending"
+    advance_mode = data.advance_payment_mode or data.payment_method or "CASH"
 
-    # =====================================================
-    # STEP 2: CREATE SALE MASTER RECORD
-    # =====================================================
+    paid_stored = data.payment_amount or advance
+    balance_stored = total - paid_stored
+
     sale = Sale(
         customer_id=data.customer_id,
         total=total,
-        paid=data.payment_amount,
-        balance=balance,
+        paid=paid_stored,
+        balance=balance_stored,
         status="COMPLETED",
-        created_by=user_id
+        created_by=user_id,
+        advance_amount=advance,
+        advance_payment_mode=advance_mode if advance > 0 else None,
+        advance_payment_date=datetime.utcnow() if advance > 0 else None,
+        balance_amount=balance_amt,
+        balance_payment_mode=None,
+        balance_payment_date=None,
+        payment_status=payment_status,
+        delivery_status="pending",
     )
 
     db.add(sale)
@@ -117,14 +135,14 @@ def create_sale(db: Session, data, user_id: int):
     # =====================================================
     # STEP 4: RECORD PAYMENT
     # =====================================================
-    if data.payment_amount and Decimal(data.payment_amount) > 0:
-
+    amt = data.payment_amount or advance
+    mode = data.advance_payment_mode or data.payment_method or "CASH"
+    if amt and Decimal(amt) > 0:
         payment = Payment(
             sale_id=sale.id,
-            amount=data.payment_amount,
-            method=data.payment_method   # ✅ CORRECT FIELD
+            amount=amt,
+            method=mode,
         )
-
         db.add(payment)
 
     # =====================================================
@@ -144,5 +162,31 @@ def get_sale(db: Session, sale_id: int):
     """
     Fetch full sale including items and payments
     """
-
     return db.query(Sale).get(sale_id)
+
+
+# =========================================================
+# DELIVER SALE
+# =========================================================
+def deliver_sale(db: Session, sale_id: int, balance_payment_mode: str):
+    """
+    Mark sale as delivered, record balance payment.
+    Sets balance_payment_date=now(), payment_status=paid, delivery_status=delivered, balance_amount=0.
+    Records balance payment in Payment table if balance_amount > 0.
+    """
+    sale = db.query(Sale).get(sale_id)
+    if not sale:
+        return None
+    bal = Decimal(str(getattr(sale, "balance_amount", 0) or 0))
+    sale.balance_payment_mode = balance_payment_mode
+    sale.balance_payment_date = datetime.utcnow()
+    sale.payment_status = "paid"
+    sale.delivery_status = "delivered"
+    sale.balance_amount = Decimal("0")
+    sale.balance = Decimal("0")
+    sale.paid = (sale.paid or Decimal("0")) + bal
+    if bal > 0:
+        db.add(Payment(sale_id=sale_id, amount=bal, method=balance_payment_mode))
+    _safe_commit(db)
+    db.refresh(sale)
+    return sale

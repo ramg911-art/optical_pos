@@ -8,8 +8,8 @@ from io import BytesIO
 
 from app.api.deps import get_db
 from app.api.security import get_current_user
-from app.schemas.sales import *
-from app.crud.sales import create_sale, get_sale
+from app.schemas.sales import SaleCreate, SaleOut, DeliverIn
+from app.crud.sales import create_sale, get_sale, deliver_sale
 from app.services.invoice_pdf import generate_invoice_pdf
 from app.services.sales_service import (
     build_sale_detail_response,
@@ -69,6 +69,24 @@ def invoice_pdf(
         media_type="application/pdf",
         filename=f"invoice_{sale_id}.pdf",
     )
+
+
+@router.post("/{sale_id}/deliver")
+def deliver_sale_endpoint(
+    sale_id: int,
+    data: DeliverIn,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    sale = deliver_sale(db, sale_id, data.balance_payment_mode)
+    if not sale:
+        raise HTTPException(404, "Sale not found")
+    return {
+        "success": True,
+        "sale_id": sale.id,
+        "payment_status": sale.payment_status,
+        "delivery_status": sale.delivery_status,
+    }
 
 
 @router.post("/{sale_id}/return")

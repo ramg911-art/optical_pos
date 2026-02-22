@@ -150,10 +150,55 @@ def generate_invoice_pdf(sale):
     y -= 15
 
     c.setFont("Helvetica-Bold", 12)
-
     c.drawRightString(width - 30, y, f"Grand Total : {grand_total:.2f}")
+    y -= 25
 
-    y -= 40
+    # ================= ADVANCE / BALANCE =================
+    adv = getattr(sale, "advance_amount", None)
+    adv_mode = getattr(sale, "advance_payment_mode", None)
+    adv_date = getattr(sale, "advance_payment_date", None)
+    bal_amt = getattr(sale, "balance_amount", None)
+    bal_mode = getattr(sale, "balance_payment_mode", None)
+    bal_date = getattr(sale, "balance_payment_date", None)
+    pay_status = getattr(sale, "payment_status", None)
+
+    if adv is None and hasattr(sale, "paid") and sale.paid:
+        adv = sale.paid
+        bal_amt = sale.balance
+    adv_val = float(adv or 0)
+    bal_val = float(bal_amt) if bal_amt is not None else float(getattr(sale, "balance", 0) or 0)
+
+    c.setFont("Helvetica", 10)
+    c.drawString(30, y, f"Advance Paid: Rs {adv_val:.2f}")
+    y -= 14
+    if adv_date:
+        c.drawString(30, y, f"Advance Date: {adv_date.strftime('%d-%m-%Y')}")
+        y -= 14
+    if adv_mode:
+        c.drawString(30, y, f"Advance Mode: {adv_mode}")
+        y -= 14
+    y -= 8
+
+    if bal_val > 0:
+        c.drawString(30, y, f"Balance Due: Rs {bal_val:.2f}")
+    else:
+        c.drawString(30, y, f"Balance Paid: Rs {float(bal_amt or 0):.2f}")
+        y -= 14
+        if bal_date:
+            c.drawString(30, y, f"Balance Date: {bal_date.strftime('%d-%m-%Y')}")
+            y -= 14
+        if bal_mode:
+            c.drawString(30, y, f"Balance Mode: {bal_mode}")
+            y -= 14
+    y -= 14
+
+    if pay_status:
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(30, y, f"Payment Status: {pay_status.upper()}")
+        y -= 20
+
+    c.setFont("Helvetica", 10)
+    y -= 10
 
     # ================= SIGNATURE =================
 

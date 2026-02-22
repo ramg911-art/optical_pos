@@ -191,6 +191,18 @@ class Sale(Base):
 
     created_at = Column(TIMESTAMP, server_default=func.now())
 
+    # Advance / balance payment tracking
+    advance_amount = Column(Numeric(10, 2), nullable=False, server_default="0")
+    advance_payment_mode = Column(String(50), nullable=True)
+    advance_payment_date = Column(TIMESTAMP, nullable=True)
+
+    balance_amount = Column(Numeric(10, 2), nullable=False, server_default="0")
+    balance_payment_mode = Column(String(50), nullable=True)
+    balance_payment_date = Column(TIMESTAMP, nullable=True)
+
+    payment_status = Column(String(50), nullable=False, server_default="pending")
+    delivery_status = Column(String(50), nullable=False, server_default="pending")
+
     # RELATIONSHIPS
 
     customer = relationship("Customer", back_populates="sales")
