@@ -51,6 +51,18 @@ class ItemCreate(BaseModel):
     stock_qty: Optional[int] = 0
 
 
+class ItemSearchOut(BaseModel):
+    """Lightweight schema for autocomplete / search results."""
+    id: int
+    name: str
+    stock_qty: int
+    selling_price: Optional[Decimal] = None
+    gst_percent: Optional[Decimal] = None
+
+    class Config:
+        from_attributes = True
+
+
 class ItemOut(BaseModel):
     id: int
     name: str

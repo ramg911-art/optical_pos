@@ -17,16 +17,15 @@ export default function Items() {
   const [category, setCategory] = useState("")
   const [categories, setCategories] = useState<any[]>([])
 
-  const [supplierName, setSupplierName] = useState("")
-  const [supplierGst, setSupplierGst] = useState("")
-  const [supplierContact, setSupplierContact] = useState("")
-  const [supplierAddress, setSupplierAddress] = useState("")
+  const [supplierId, setSupplierId] = useState("")
+  const [suppliers, setSuppliers] = useState<any[]>([])
 
   const [gstPercent, setGstPercent] = useState("")
   const [purchasePrice, setPurchasePrice] = useState("")
   const [hsnCode, setHsnCode] = useState("")
 
   const [edit, setEdit] = useState<any>(null)
+  const [editSupplierId, setEditSupplierId] = useState("")
 
   const loadItems = async () => {
     const res = await axios.get(`${API}/items/`, { headers })
@@ -38,9 +37,15 @@ export default function Items() {
     setCategories(res.data)
   }
 
+  const loadSuppliers = async () => {
+    const res = await axios.get(`${API}/suppliers/`, { headers })
+    setSuppliers(res.data)
+  }
+
   useEffect(() => {
     loadItems()
     loadCategories()
+    loadSuppliers()
   }, [])
 
   // ---------- ADD ----------
@@ -51,6 +56,8 @@ export default function Items() {
       return
     }
 
+    const sel = suppliers.find(s => s.id === parseInt(supplierId))
+
     await axios.post(
       `${API}/items/`,
       {
@@ -59,10 +66,10 @@ export default function Items() {
         selling_price: parseFloat(price || "0"),
         stock_qty: parseInt(stock || "0"),
 
-        supplier_name: supplierName || null,
-        supplier_gst: supplierGst || null,
-        supplier_contact: supplierContact || null,
-        supplier_address: supplierAddress || null,
+        supplier_name: sel?.name || null,
+        supplier_gst: sel?.gstin || null,
+        supplier_contact: sel?.phone || null,
+        supplier_address: sel?.address || null,
 
         gst_percent: gstPercent ? parseFloat(gstPercent) : null,
         purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
@@ -75,10 +82,7 @@ export default function Items() {
     setPrice("")
     setStock("")
     setCategory("")
-    setSupplierName("")
-    setSupplierGst("")
-    setSupplierContact("")
-    setSupplierAddress("")
+    setSupplierId("")
     setGstPercent("")
     setPurchasePrice("")
     setHsnCode("")
@@ -96,6 +100,7 @@ export default function Items() {
     )
 
     setEdit(null)
+    setEditSupplierId("")
     loadItems()
   }
 
@@ -179,29 +184,17 @@ export default function Items() {
           onChange={e => setHsnCode(e.target.value)}
         />
 
-        <input
-          placeholder="Supplier Name"
-          value={supplierName}
-          onChange={e => setSupplierName(e.target.value)}
-        />
-
-        <input
-          placeholder="Supplier GST"
-          value={supplierGst}
-          onChange={e => setSupplierGst(e.target.value)}
-        />
-
-        <input
-          placeholder="Supplier Contact"
-          value={supplierContact}
-          onChange={e => setSupplierContact(e.target.value)}
-        />
-
-        <input
-          placeholder="Supplier Address"
-          value={supplierAddress}
-          onChange={e => setSupplierAddress(e.target.value)}
-        />
+        <select
+          value={supplierId}
+          onChange={e => setSupplierId(e.target.value)}
+        >
+          <option value="">Select Supplier</option>
+          {suppliers.map(s => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
 
       </div>
 
@@ -236,7 +229,11 @@ export default function Items() {
               <td>{i.supplier_name}</td>
 
               <td>
-                <button onClick={() => setEdit({ ...i })}>
+                <button onClick={() => {
+                  setEdit({ ...i })
+                  const match = suppliers.find(s => s.name === i.supplier_name)
+                  setEditSupplierId(match ? String(match.id) : "")
+                }}>
                   Edit
                 </button>
               </td>
@@ -298,47 +295,36 @@ export default function Items() {
             })}
           />
 
-          <input
-            placeholder="Supplier Name"
-            value={edit.supplier_name || ""}
-            onChange={e => setEdit({
-              ...edit,
-              supplier_name: e.target.value,
-            })}
-          />
-
-          <input
-            placeholder="Supplier GST"
-            value={edit.supplier_gst || ""}
-            onChange={e => setEdit({
-              ...edit,
-              supplier_gst: e.target.value,
-            })}
-          />
-
-          <input
-            placeholder="Supplier Contact"
-            value={edit.supplier_contact || ""}
-            onChange={e => setEdit({
-              ...edit,
-              supplier_contact: e.target.value,
-            })}
-          />
-
-          <input
-            placeholder="Supplier Address"
-            value={edit.supplier_address || ""}
-            onChange={e => setEdit({
-              ...edit,
-              supplier_address: e.target.value,
-            })}
-          />
+          <select
+            value={editSupplierId}
+            onChange={e => {
+              const id = e.target.value
+              setEditSupplierId(id)
+              const s = suppliers.find(sup => sup.id === parseInt(id))
+              if (s) {
+                setEdit({
+                  ...edit,
+                  supplier_name: s.name,
+                  supplier_gst: s.gstin,
+                  supplier_contact: s.phone,
+                  supplier_address: s.address,
+                })
+              }
+            }}
+          >
+            <option value="">Select Supplier</option>
+            {suppliers.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
 
           <button onClick={saveEdit} style={{ marginRight: 8 }}>
             Save
           </button>
 
-          <button onClick={() => setEdit(null)}>
+          <button onClick={() => { setEdit(null); setEditSupplierId("") }}>
             Cancel
           </button>
         </div>

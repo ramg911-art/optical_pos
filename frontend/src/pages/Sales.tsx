@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react"
+import React, { useEffect, useState, useRef, useCallback } from "react"
 import axios from "axios"
 
 const API = "http://192.168.10.216:9200"
@@ -12,22 +12,74 @@ export default function Sales(){
   }
 
   const scanRef = useRef<HTMLInputElement>(null)
+  const autocompleteRef = useRef<HTMLDivElement>(null)
 
   const [items,setItems] = useState<any[]>([])
   const [scan,setScan] = useState("")
   const [cart,setCart] = useState<any[]>([])
+
+  const [itemSearch, setItemSearch] = useState("")
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
 
   const [custName,setCustName]=useState("")
   const [custPhone,setCustPhone]=useState("")
   const [payment,setPayment]=useState("CASH")
   const [paid,setPaid]=useState("")
 
-  // ================= LOAD ITEMS =================
+  // ================= LOAD ITEMS (for barcode scan fallback) =================
   useEffect(()=>{
     axios.get(`${API}/items/`,{headers})
       .then(res=>setItems(res.data))
       .catch(()=>alert("Auth expired — login again"))
   },[])
+
+  // ================= ITEM SEARCH AUTOCOMPLETE =================
+  const fetchSearchResults = useCallback(async (q: string) => {
+    if (!q || q.length < 2) {
+      setSearchResults([])
+      return
+    }
+    setSearchLoading(true)
+    try {
+      const res = await axios.get(`${API}/items/search`, { headers, params: { q } })
+      setSearchResults(res.data)
+      setShowDropdown(true)
+    } catch {
+      setSearchResults([])
+    } finally {
+      setSearchLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const t = setTimeout(() => fetchSearchResults(itemSearch), 250)
+    return () => clearTimeout(t)
+  }, [itemSearch, fetchSearchResults])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (autocompleteRef.current && !autocompleteRef.current.contains(e.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const selectItem = (item: any) => {
+    addToCart({
+      id: item.id,
+      name: item.name,
+      selling_price: item.selling_price,
+      gst_percent: item.gst_percent ?? 0,
+      stock_qty: item.stock_qty
+    })
+    setItemSearch("")
+    setSearchResults([])
+    setShowDropdown(false)
+  }
 
   // ================= SCAN =================
   const handleScan=(e:any)=>{
@@ -184,10 +236,63 @@ export default function Sales(){
 
       <h1>Sales Billing</h1>
 
+      {/* Item autocomplete */}
+      <div ref={autocompleteRef} style={{ position: "relative", marginBottom: 8 }}>
+        <input
+          placeholder="Search item (min 2 chars)..."
+          value={itemSearch}
+          onChange={e => setItemSearch(e.target.value)}
+          onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
+          style={{ width: "100%", fontSize: 16, padding: 10 }}
+        />
+        {showDropdown && (itemSearch.length >= 2 || searchResults.length > 0) && (
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: 0,
+              background: "white",
+              border: "1px solid #ccc",
+              borderRadius: 4,
+              maxHeight: 240,
+              overflowY: "auto",
+              zIndex: 1000,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            }}
+          >
+            {searchLoading ? (
+              <div style={{ padding: 12, color: "#666" }}>Loading...</div>
+            ) : searchResults.length === 0 ? (
+              <div style={{ padding: 12, color: "#666" }}>No items found</div>
+            ) : (
+              searchResults.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => selectItem(item)}
+                  style={{
+                    padding: "10px 12px",
+                    cursor: "pointer",
+                    borderBottom: "1px solid #eee",
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = "#f5f5f5"
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = "white"
+                  }}
+                >
+                  {item.name} (Stock: {item.stock_qty})
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
       <input
         ref={scanRef}
-        autoFocus
-        placeholder="Scan or type → Enter"
+        placeholder="Or scan barcode → Enter"
         value={scan}
         onChange={e=>setScan(e.target.value)}
         onKeyDown={handleScan}

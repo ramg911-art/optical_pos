@@ -88,9 +88,9 @@ def remove_category(
         raise HTTPException(404, "Category not found")
     return {"status": "deleted"}
 
-@router.get("/search", response_model=list[ItemOut])
+@router.get("/search", response_model=list[ItemSearchOut])
 def search_items_endpoint(
-        q: str = Query(..., min_length=1),
+        q: str = Query(..., min_length=2),
         db: Session = Depends(get_db),
         user=Depends(get_current_user)):
     return crud_item.search_items(db, q)

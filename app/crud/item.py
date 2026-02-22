@@ -97,6 +97,7 @@ def search_items(db: Session, query: str, limit: int = 20):
                 Item.name.ilike(f"%{query}%"),
                 Item.brand.ilike(f"%{query}%"),
                 Item.model.ilike(f"%{query}%"),
+                Item.barcode.ilike(f"%{query}%"),
             )
         )
         .limit(limit)

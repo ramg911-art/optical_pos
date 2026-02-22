@@ -25,5 +25,8 @@ def list_suppliers(db):
 
 def delete_supplier(db, sid):
     s = db.query(Supplier).get(sid)
+    if not s:
+        return False
     db.delete(s)
     _safe_commit(db)
+    return True
